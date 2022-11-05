@@ -14,16 +14,18 @@ using namespace std;
 int n, privatepipe;
 char name[50];
 static char buffer[PIPE_BUF];
+struct message msg;
 
 void signalHandler( int signum ) {
-   if ((privatepipe = open(name, O_RDONLY)) == -1) {
+   if ((privatepipe = open(msg.username, O_RDONLY)) == -1) {
         perror(name);
         return;
     }       
-    cout << "\n\n";
+    cout << "\r";
     while ((n = read(privatepipe, buffer, PIPE_BUF)) > 0) {
-        write(fileno(stderr), buffer, n);
+        write(fileno(stdout), buffer, n);
     }
+    cout << "\n\n>";
     close(privatepipe);
 }
 
@@ -33,22 +35,11 @@ int main() {
 
     char target_name[50];
 
-    struct message msg;
-
-    write(fileno(stdout), "Adiniz nedir?\n>", 16);
-    n = read(fileno(stdin), name, 50);
-    write(fileno(stdout), "Kime mesaj atmak istiyorsun?\n>", 31);
-    n = read(fileno(stdin), target_name, 50);
-
-    sprintf(msg.username, "/tmp/pipe%s", target_name);
-
-    char temp[10];
-    strcpy(temp, name);
-    sprintf(name, "/tmp/pipe%s", temp);
+    sprintf(msg.username, "/tmp/pipe%d", getpid());
 
 
     // write(fileno(stdout), "code working so far1", 20);
-    if (mknod(name, S_IFIFO | 0666, 0) < 0) {
+    if (mknod(msg.username, S_IFIFO | 0666, 0) < 0) {
         perror(name);
         return 1;
     }
