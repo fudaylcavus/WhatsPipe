@@ -11,28 +11,26 @@ struct message serverMessage;
 map<string, int> user_pid;
 char targetpipe_path[50];
 string ERRORS[] = {"SERVER_DUPL_NAME_ERROR", "SERVER_TARGET_NOT_FOUND_ERROR"};
-int number_parser(char arr[], int size)
-{
-    int j = 0;
-    for (int i = 0; i < size; i++)
-    {
-        if (arr[i] >= '0' && arr[i] <= '9')
-        {
-            arr[j++] = arr[i];
-        }
-    }
-    arr[j] = '\0';
 
-    int pid;
-    sscanf(arr, "%d", &pid);
-    return pid;
-}
-
-void array_copier(char s[], char d[], int size)
+enum Location
 {
-    for (int i = 0; i < size; i++)
+    FROM,
+    CONTENT,
+    TARGET
+};
+
+bool is_user_exists(Location location)
+{
+    switch (location)
     {
-        d[i] = s[i];
+    case FROM:
+        return user_pid[msg.from_user] != 0;
+    case CONTENT:
+        return user_pid[msg.content] != 0;
+    case TARGET:
+        return user_pid[msg.target_user] != 0;
+    default:
+        return false;
     }
 }
 
@@ -44,15 +42,16 @@ void user_init()
 
     // char[] to string and map insertion
     string from(msg.from_user);
-    user_pid.insert(pair<string, int>(from, pid));
+    user_pid[from] = pid;
     kill(pid, 15);
+
     cout << "New User<" << from << "," << user_pid[from] << "> saved!" << endl;
 }
 
 void handle_send_error(int targetPid)
 {
     kill(targetPid, 10);
-    sprintf(targetpipe_path, "/tmp/pipe%d", targetPid);
+    snprintf(targetpipe_path, sizeof(targetpipe_path), "/tmp/pipe%d", targetPid);
     int targetPrivatePipe;
     int done = 0;
     int n = 0;
@@ -79,9 +78,9 @@ void handle_send_error(int targetPid)
 void error_handler(int errorType, int targetPid)
 {
 
-    sprintf(serverMessage.from_user, "%s", "SERVER");
-    sprintf(serverMessage.content, "%s", ERRORS[errorType].c_str());
-    sprintf(serverMessage.target_user, "%d", targetPid);
+    snprintf(serverMessage.from_user, sizeof(serverMessage.from_user, "%s"), "%s", "SERVER");
+    snprintf(serverMessage.content, sizeof(serverMessage.content), "%s", ERRORS[errorType].c_str());
+    snprintf(serverMessage.target_user, sizeof(serverMessage.target_user), "%d", targetPid);
     handle_send_error(targetPid);
 }
 
@@ -94,22 +93,25 @@ void handle_taken_name()
 }
 void handle_user_disconnect()
 {
-    printf("BEFOREEE");
-    for (auto it = user_pid.cbegin(); it != user_pid.cend(); ++it)
+    cout << "CHECK THIS IN HANLDE USER DISC";
+    cout << "%s" << msg.content;
+
+    if (is_user_exists(CONTENT))
     {
-        std::cout << "{" << (*it).first << ": " << (*it).second << "}\n";
+        // string messageToUser = std::string("User ") + msg.from_user+ (" has been disconnected, You can not message to them anymore");
+        int pid = user_pid[msg.content];
+        kill(pid, 4);
     }
+
     user_pid.erase(msg.from_user);
-    printf("AFTERRR");
-    for (auto it = user_pid.cbegin(); it != user_pid.cend(); ++it)
-    {
-        std::cout << "{" << (*it).first << ": " << (*it).second << "}\n";
-    }
 }
+
+
+
 int main()
 {
     int n, done, dummypipe, publicpipe, privatepipe;
-    static char buffer[PIPE_BUF];
+    static char buffer[8192];
 
     mknod(PUBLIC, S_IFIFO | 0666, 0);
 
@@ -125,11 +127,9 @@ int main()
         cout << "From: " << msg.from_user << "\nTo: " << msg.target_user << "\nContent: " << msg.content << endl;
         if (!strcmp(msg.target_user, "SERVER-INIT"))
         {
-            // checks if users map has username!
-            // unless it's multidimensional map, map.count(key) returns 1 if it contains the key.
-            bool isUserInMap = user_pid.count(msg.from_user) == 1 ? true : false;
-            if (isUserInMap)
+            if (is_user_exists(FROM))
             {
+                cout << "inside control" << endl;
                 handle_taken_name();
                 cout << "This map has user" << msg.from_user << endl;
                 cout << "This map has user with pid" << msg.content << endl;
@@ -143,8 +143,7 @@ int main()
         }
         else if (!strcmp(msg.target_user, "USER-DISCONNECT"))
         {
-            bool isUserInMap = user_pid.count(msg.from_user) == 1 ? true : false;
-            if (isUserInMap)
+            if (is_user_exists(FROM))
             {
                 handle_user_disconnect();
             }
@@ -158,7 +157,7 @@ int main()
             int target_pid = user_pid[target];
             if (!target_pid)
             {
-                    kill(user_pid[msg.from_user], 4);
+                kill(user_pid[msg.from_user], 4);
                 // TODO: send to sender:
                 // SERVER: Target user is offline!
                 continue;
@@ -166,7 +165,7 @@ int main()
 
             if (target_pid != 0)
                 kill(target_pid, 10);
-            sprintf(targetpipe_path, "/tmp/pipe%d", target_pid);
+            snprintf(targetpipe_path, sizeof(targetpipe_path), "/tmp/pipe%d", target_pid);
             cout << "Target pipe path: " << targetpipe_path << endl;
 
             do
