@@ -25,8 +25,8 @@ string ERRORS[] = {"SERVER_DUPL_NAME_ERROR", "SERVER_TARGET_NOT_FOUND_ERROR"};
 void server_init()
 {
     // Send pid to
-    sprintf(msg.target_user, "SERVER-INIT");
-    sprintf(msg.content, "%d", getpid());
+    snprintf(msg.target_user, sizeof(msg.target_user), "%s", "SERVER-INIT");
+    snprintf(msg.content, sizeof(msg.content), "%d", getpid());
     write(publicpipe, (char *)&msg, sizeof(msg));
 }
 void handle_target(int signum = 15)
@@ -38,7 +38,7 @@ void handle_target(int signum = 15)
          << ">";
     cin >> target_user;
     cout << "new target user name is " << target_user << "\n";
-    sprintf(msg.target_user, "%s", target_user.c_str());
+    snprintf(msg.target_user, sizeof(msg.target_user), "%s", target_user.c_str());
 }
 void handle_duplicate_name()
 {
@@ -51,11 +51,12 @@ void handle_duplicate_name()
              << ">";
         cin >> from_user;
     }
-    sprintf(msg.from_user, "%s", from_user.c_str());
+    snprintf(msg.from_user, sizeof(msg.from_user), "%s", from_user.c_str());
     server_init();
     cout << "Waiting for server to verify your name...";
     pause();
 }
+
 void on_messsage(int signum)
 {
     if ((privatepipe = open(selfpipe_path, O_RDONLY)) == -1)
@@ -71,26 +72,39 @@ void on_messsage(int signum)
             handle_duplicate_name();
         }
         else
-            write(fileno(stdout), buffer, n);
+        {
+            // add into <user, msg> msg array;
+            cout << buffer;
+        }
     }
-    cout << endl;
+
+    int childpid;
+    switch (childpid = fork())
+    {
+        case 0:
+            pause()
+            execl("/usr/bin/tput", "tput", "cup", "9999", "0", NULL);
+            break;
+        default:
+            // TODO: refresh_screen(childpid) -> SIG6;
+            break;
+    }
 
     close(privatepipe);
 }
 void handle_offline(int signum)
 {
-    cout << "User is offline! Please try again later!\n";
+    cout << "User is offline!\n";
     handle_target();
 }
 void handle_disconnect(int signum)
 {
-    sprintf(msg.target_user, "USER-DISCONNECT");
-    sprintf(msg.content, "%d", getpid());
+    snprintf(msg.content, sizeof(msg.content), "%s", msg.target_user);
+    snprintf(msg.target_user, sizeof(msg.target_user), "%s", "USER-DISCONNECT");
     write(publicpipe, (char *)&msg, sizeof(msg));
-    cout<<"Successfully disconnected";
+    cout << "Successfully disconnected";
     exit(0);
 }
-
 
 int main()
 {
@@ -103,8 +117,8 @@ int main()
          << ">";
     cin >> from_user;
 
-    sprintf(msg.from_user, "%s", from_user.c_str());
-    sprintf(selfpipe_path, "/tmp/pipe%d", getpid());
+    snprintf(msg.from_user, sizeof(msg.from_user), "%s", from_user.c_str());
+    snprintf(selfpipe_path, sizeof(selfpipe_path), "/tmp/pipe%d", getpid());
 
     // write(fileno(stdout), "code working so far1", 20);
     if (mknod(selfpipe_path, S_IFIFO | 0666, 0) < 0)
