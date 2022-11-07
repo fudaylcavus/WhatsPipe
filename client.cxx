@@ -16,9 +16,12 @@ using namespace std;
 
 const string WHITESPACE = " \n\r\t\f\v";
 
+int TERM_WIDTH = 150;
+
+void create_input_gap();
+
 int n, privatepipe;
-char selfpipe_path[50];
-static char buffer[PIPE_BUF];
+char selfpipe_path[C_NAME_SIZ];
 struct message msg;
 int publicpipe;
 string from_user;
@@ -32,6 +35,12 @@ enum MessageStatus
     RECEIVED,
     SENT
 };
+
+void align_right(int box_width) {
+    for (int i = 0; i < TERM_WIDTH - box_width; i++) {
+        cout << " ";
+    }
+}
 
 string rtrim(const char charstring[])
 {
@@ -79,6 +88,7 @@ void print_messages(string user)
 
             break;
         case SENT:
+            align_right(6 + message.length());
             cout << SetBackGRN << "   ";
             for (int j = 0; j < message.length(); j++)
             {
@@ -86,8 +96,10 @@ void print_messages(string user)
             }
             cout << "   " << RESETTEXT << endl;
 
+            align_right(6 + message.length());
             cout << SetBackGRN << "   " << message << "   " << RESETTEXT << endl;
 
+            align_right(6 + message.length());
             cout << SetBackGRN << "   ";
             for (int j = 0; j < message.length(); j++)
             {
@@ -98,6 +110,8 @@ void print_messages(string user)
         default:
             break;
         }
+
+        create_input_gap();
     
     }
 }
@@ -107,7 +121,7 @@ void server_init()
     // Send pid to
     snprintf(msg.target_user, sizeof(msg.target_user), "%s", "SERVER-INIT");
     snprintf(msg.content, sizeof(msg.content), "%d", getpid());
-    write(publicpipe, (char *)&msg, sizeof(msg));
+    write(publicpipe, (char *)&msg, C_PIPE_BUF);
 }
 void handle_target(int signum = 15)
 {
@@ -146,7 +160,7 @@ void on_messsage(int signum)
     }
 
     message tempMsg;
-    while ((n = read(privatepipe, (char *)&tempMsg, sizeof(tempMsg))) > 0)
+    while ((n = read(privatepipe, (char *)&tempMsg, C_PIPE_BUF)) > 0)
     {
         if (tempMsg.content == ERRORS[0])
         {
@@ -169,9 +183,21 @@ void handle_disconnect(int signum)
 {
     snprintf(msg.content, sizeof(msg.content), "%s", msg.target_user);
     snprintf(msg.target_user, sizeof(msg.target_user), "%s", "USER-DISCONNECT");
-    write(publicpipe, (char *)&msg, sizeof(msg));
+    write(publicpipe, (char *)&msg, C_PIPE_BUF);
     cout << "Successfully disconnected";
     exit(0);
+}
+
+void create_input_gap() {
+    switch (fork())
+    {
+    case 0:
+        execl("/usr/bin/tput", "tput", "cup", "9999", "0", NULL);
+        break;
+    default:
+        break;
+    }
+    
 }
 
 int main()
@@ -201,17 +227,18 @@ int main()
         perror(PUBLIC);
         return 2;
     }
-    // write(fileno(stdout), "code working so far3", 20);
+
     server_init();
     cout << "Waiting for server to verify your name...\n";
     pause();
+
 
     while (1)
     {
         print_messages(msg.target_user);
         cout << "----------------Input----------------" << endl;
-        memset(msg.content, 0x0, B_SIZ);
-        read(fileno(stdin), msg.content, B_SIZ);
+        memset(msg.content, 0x0, C_PIPE_BUF - 100);
+        read(fileno(stdin), msg.content, C_PIPE_BUF - 100);
         snprintf(msg.content, sizeof(msg.content), "%s", rtrim(msg.content).c_str());
         cout << endl
              << msg.content << endl;
@@ -222,7 +249,7 @@ int main()
         }
         snprintf(msg.target_user, sizeof(msg.target_user), "%s", target_user.c_str());
         snprintf(msg.from_user, sizeof(msg.from_user), "%s", from_user.c_str());
-        write(publicpipe, (char *)&msg, sizeof(msg));
+        write(publicpipe, (char *)&msg, C_PIPE_BUF);
         insert_message(msg.target_user, "1" + string(msg.content));
     }
     close(publicpipe);

@@ -9,7 +9,7 @@ using namespace std;
 struct message msg;
 struct message serverMessage;
 map<string, int> user_pid;
-char targetpipe_path[50];
+char targetpipe_path[C_NAME_SIZ];
 string ERRORS[] = {"SERVER_DUPL_NAME_ERROR", "SERVER_TARGET_NOT_FOUND_ERROR"};
 
 enum Location
@@ -64,7 +64,7 @@ void handle_send_error(int targetPid)
         else
         {
 
-            write(targetPrivatePipe, serverMessage.content, B_SIZ);
+            write(targetPrivatePipe, serverMessage.content, C_PIPE_BUF - 100);
             close(targetPrivatePipe);
             done = 1;
         }
@@ -109,7 +109,6 @@ void handle_user_disconnect()
 int main()
 {
     int n, done, dummypipe, publicpipe, privatepipe;
-    static char buffer[8192];
 
     mknod(PUBLIC, S_IFIFO | 0666, 0);
 
@@ -120,7 +119,7 @@ int main()
         return 1;
     }
 
-    while (read(publicpipe, (char *)&msg, sizeof(msg)) > 0)
+    while (read(publicpipe, (char *)&msg, C_PIPE_BUF) > 0)
     {
         cout << "From: " << msg.from_user << "\nTo: " << msg.target_user << "\nContent: " << msg.content << endl;
         if (!strcmp(msg.target_user, "SERVER-INIT"))
@@ -176,7 +175,7 @@ int main()
                 {
                     // TODO, su anda client sadece msg.content aliyor
                     //  tum mesaj objesini gonder.
-                    write(privatepipe, (char *)&msg, sizeof(msg));
+                    write(privatepipe, (char *)&msg, C_PIPE_BUF);
 
                     close(privatepipe);
                     done = 1;
