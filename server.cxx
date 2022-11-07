@@ -178,7 +178,8 @@ int main()
                 {
                     // TODO, su anda client sadece msg.content aliyor
                     //  tum mesaj objesini gonder.
-                    write(privatepipe, msg.content, B_SIZ);
+                    write(privatepipe, (char *)&msg, sizeof(msg));
+
                     close(privatepipe);
                     done = 1;
                 }
