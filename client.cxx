@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <csignal>
+#include <map>
 
 using namespace std;
 
@@ -21,6 +22,73 @@ int publicpipe;
 string from_user;
 string target_user;
 string ERRORS[] = {"SERVER_DUPL_NAME_ERROR", "SERVER_TARGET_NOT_FOUND_ERROR"};
+
+map<string, vector<string> > user_msg;
+
+enum MessageStatus
+{
+    RECEIVED,
+    SENT
+};
+
+void insert_message(string user, string message)
+{
+    user_msg[user].push_back(message);
+}
+
+void print_messages(string user)
+{
+    cout << "\e[2J";
+    vector<string> messages = user_msg[user];
+    for (int i = 0; i < messages.size(); i++)
+    {
+        string prefix = messages[i].substr(0, 1);
+        string message = messages[i].substr(1);
+        int status = atoi(prefix.c_str());
+
+        //TODO: all of those cout codes are duplicate and works for printing,
+        // even space. Create a function for it
+        switch (status)
+        {
+        case RECEIVED:
+            cout << SetBackBBLK << "   ";
+            for (int j = 0; j < message.length(); j++)
+            {
+                cout << " ";
+            }
+            cout << "   " << RESETTEXT << endl;
+
+            cout << SetBackBBLK << "   " << message << "   " << RESETTEXT <<endl;
+
+            cout << SetBackBBLK << "   ";
+            for (int j = 0; j < message.length(); j++)
+            {
+                cout << " ";
+            }
+            cout << "   " << RESETTEXT << endl << endl;
+
+            break;
+        case SENT:
+            cout << SetBackGRN << "   ";
+            for (int j = 0; j < message.length(); j++)
+            {
+                cout << " ";
+            }
+            cout << "   " << RESETTEXT << endl;
+
+            cout << SetBackGRN << "   " << message << "   " << RESETTEXT << endl;
+
+            cout << SetBackGRN << "   ";
+            for (int j = 0; j < message.length(); j++)
+            {
+                cout << " ";
+            }
+            cout << "   " << RESETTEXT << endl << endl;
+        default:
+            break;
+        }
+    }
+}
 
 void server_init()
 {
@@ -64,17 +132,16 @@ void on_messsage(int signum)
         perror(selfpipe_path);
         return;
     }
-
-    while ((n = read(privatepipe, buffer, PIPE_BUF)) > 0)
+    while ((n = read(privatepipe, (char *) &msg, sizeof(msg))) > 0)
     {
-        if (buffer == ERRORS[0])
+        if (msg.content == ERRORS[0])
         {
             handle_duplicate_name();
         }
         else
         {
-            // add into <user, msg> msg array;
-            cout << buffer;
+            insert_message(msg.from_user, "0" + string(msg.content));
+            print_messages(msg.from_user);
         }
     }
 
@@ -82,7 +149,7 @@ void on_messsage(int signum)
     switch (childpid = fork())
     {
         case 0:
-            pause()
+            pause();
             execl("/usr/bin/tput", "tput", "cup", "9999", "0", NULL);
             break;
         default:
@@ -140,17 +207,17 @@ int main()
 
     while (1)
     {
-
+        print_messages(msg.target_user);
+        cout << "----------------Input----------------" << endl;
         memset(msg.content, 0x0, B_SIZ);
-
-        n = read(fileno(stdin), msg.content, B_SIZ);
-
-        if (!strcmp("<-\n", msg.content))
+        cin.getline(msg.content, 100);
+        if (!strcmp("<-", msg.content))
         {
             handle_target();
             continue;
         }
         write(publicpipe, (char *)&msg, sizeof(msg));
+        insert_message(msg.target_user, "1" + string(msg.content));
     }
     close(publicpipe);
     unlink(selfpipe_path);
