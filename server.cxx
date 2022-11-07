@@ -78,7 +78,7 @@ void handle_send_error(int targetPid)
 void error_handler(int errorType, int targetPid)
 {
 
-    snprintf(serverMessage.from_user, sizeof(serverMessage.from_user, "%s"), "%s", "SERVER");
+    snprintf(serverMessage.from_user, sizeof(serverMessage.from_user), "%s", "SERVER");
     snprintf(serverMessage.content, sizeof(serverMessage.content), "%s", ERRORS[errorType].c_str());
     snprintf(serverMessage.target_user, sizeof(serverMessage.target_user), "%d", targetPid);
     handle_send_error(targetPid);
@@ -93,8 +93,6 @@ void handle_taken_name()
 }
 void handle_user_disconnect()
 {
-    cout << "CHECK THIS IN HANLDE USER DISC";
-    cout << "%s" << msg.content;
 
     if (is_user_exists(CONTENT))
     {

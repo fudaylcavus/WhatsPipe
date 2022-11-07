@@ -14,6 +14,8 @@
 
 using namespace std;
 
+const string WHITESPACE = " \n\r\t\f\v";
+
 int n, privatepipe;
 char selfpipe_path[50];
 static char buffer[PIPE_BUF];
@@ -31,6 +33,13 @@ enum MessageStatus
     SENT
 };
 
+string rtrim(const char charstring[])
+{
+    string s(charstring);
+    size_t end = s.find_last_not_of(WHITESPACE);
+    return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+}
+
 void insert_message(string user, string message)
 {
     user_msg[user].push_back(message);
@@ -46,8 +55,8 @@ void print_messages(string user)
         string message = messages[i].substr(1);
         int status = atoi(prefix.c_str());
 
-        //TODO: all of those cout codes are duplicate and works for printing,
-        // even space. Create a function for it
+        // TODO: all of those cout codes are duplicate and works for printing,
+        //  even space. Create a function for it
         switch (status)
         {
         case RECEIVED:
@@ -58,14 +67,15 @@ void print_messages(string user)
             }
             cout << "   " << RESETTEXT << endl;
 
-            cout << SetBackBBLK << "   " << message << "   " << RESETTEXT <<endl;
+            cout << SetBackBBLK << "   " << message << "   " << RESETTEXT << endl;
 
             cout << SetBackBBLK << "   ";
             for (int j = 0; j < message.length(); j++)
             {
                 cout << " ";
             }
-            cout << "   " << RESETTEXT << endl << endl;
+            cout << "   " << RESETTEXT << endl
+                 << endl;
 
             break;
         case SENT:
@@ -83,10 +93,12 @@ void print_messages(string user)
             {
                 cout << " ";
             }
-            cout << "   " << RESETTEXT << endl << endl;
+            cout << "   " << RESETTEXT << endl
+                 << endl;
         default:
             break;
         }
+    
     }
 }
 
@@ -132,31 +144,20 @@ void on_messsage(int signum)
         perror(selfpipe_path);
         return;
     }
-    while ((n = read(privatepipe, (char *) &msg, sizeof(msg))) > 0)
+
+    message tempMsg;
+    while ((n = read(privatepipe, (char *)&tempMsg, sizeof(tempMsg))) > 0)
     {
-        if (msg.content == ERRORS[0])
+        if (tempMsg.content == ERRORS[0])
         {
             handle_duplicate_name();
         }
         else
         {
-            insert_message(msg.from_user, "0" + string(msg.content));
-            print_messages(msg.from_user);
+            insert_message(tempMsg.from_user, "0" + string(tempMsg.content));
+            print_messages(tempMsg.from_user);
         }
     }
-
-    int childpid;
-    switch (childpid = fork())
-    {
-        case 0:
-            pause();
-            execl("/usr/bin/tput", "tput", "cup", "9999", "0", NULL);
-            break;
-        default:
-            // TODO: refresh_screen(childpid) -> SIG6;
-            break;
-    }
-
     close(privatepipe);
 }
 void handle_offline(int signum)
@@ -210,12 +211,17 @@ int main()
         print_messages(msg.target_user);
         cout << "----------------Input----------------" << endl;
         memset(msg.content, 0x0, B_SIZ);
-        cin.getline(msg.content, 100);
+        read(fileno(stdin), msg.content, B_SIZ);
+        snprintf(msg.content, sizeof(msg.content), "%s", rtrim(msg.content).c_str());
+        cout << endl
+             << msg.content << endl;
         if (!strcmp("<-", msg.content))
         {
             handle_target();
             continue;
         }
+        snprintf(msg.target_user, sizeof(msg.target_user), "%s", target_user.c_str());
+        snprintf(msg.from_user, sizeof(msg.from_user), "%s", from_user.c_str());
         write(publicpipe, (char *)&msg, sizeof(msg));
         insert_message(msg.target_user, "1" + string(msg.content));
     }
