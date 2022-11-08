@@ -5,9 +5,22 @@ enum MessageStatus
 };
 
 
-enum Location
+enum MessagePart
 {
     FROM,
     CONTENT,
     TARGET
+};
+
+enum BubbleRow 
+{
+    TOP,
+    MIDDLE,
+    BOTTOM
+};
+
+enum Aligment
+{
+    LEFT,
+    RIGHT
 };
