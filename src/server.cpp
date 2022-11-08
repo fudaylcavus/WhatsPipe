@@ -15,7 +15,7 @@ char targetpipe_path[C_NAME_SIZ];
 
 
 
-bool is_user_exists(Location location)
+bool is_user_exists(MessagePart location)
 {
     switch (location)
     {

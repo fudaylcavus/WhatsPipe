@@ -16,7 +16,8 @@ int TERM_WIDTH;
 
 #define gotoxy(x, y) printf("\033[%d;%dH", (y), (x))
 
-void handle_resize() {
+void handle_resize()
+{
     ioctl(0, TIOCGWINSZ, &w);
     TERM_WIDTH = w.ws_col;
 }
@@ -33,6 +34,29 @@ void create_input_gap()
     }
 }
 
+string align_center(string printable_box)
+{
+    int column = w.ws_col;
+    int box_w = printable_box.length();
+
+    string output;
+ 
+    int i = 0;
+    while (i < column)
+    {
+        if (i == (column / 2 - (box_w / 2)))
+        {
+            output.append(printable_box);
+            i += box_w;
+        }
+        else
+        {
+            output.append(" ");
+            i++;
+        }
+    }
+    return output;
+}
 
 void align_right(int box_width)
 {
@@ -42,35 +66,73 @@ void align_right(int box_width)
     }
 }
 
+void print_bubble_row(string content, string bg_color, BubbleRow row, Aligment align) {
+    string message_white_space;
+    for (int j = 0; j < content.length() + 6; j++) message_white_space.append(" ");
+
+    switch (row)
+    {
+    case MIDDLE:
+        if (align == RIGHT) align_right(6 + content.length());
+        cout << bg_color << "   " << content << "   " << RESETTEXT << endl;
+        break;
+
+    default:
+        if (align == RIGHT) align_right(6 + content.length());
+        cout << bg_color << message_white_space << RESETTEXT << endl;
+        break;
+    }
+
+    if (row == BOTTOM) cout << endl;
+}
+
+void print_message_bubble(string message, MessageStatus status) {
+    switch (status)
+    {
+    case SENT:
+        print_bubble_row(message, SetBackGRN, TOP, RIGHT);
+        print_bubble_row(message, SetBackGRN, MIDDLE, RIGHT);
+        print_bubble_row(message, SetBackGRN, BOTTOM, RIGHT); 
+        break;
+    case RECEIVED:
+        print_bubble_row(message, SetBackBBLK, TOP, LEFT);
+        print_bubble_row(message, SetBackBBLK, MIDDLE, LEFT);
+        print_bubble_row(message, SetBackBBLK, BOTTOM, LEFT);
+        break;
+    }
+}
+
+void handle_header()
+{
+    int column = w.ws_col;
+    gotoxy(0, 2);
+
+    string input_border;
+    string white_space;
+    for (int i = 0; i < column; i++) white_space += " ";
+
+    cout << SetBackWHT << SetForeBLK << white_space                             << RESETTEXT << endl;
+    cout << SetBackWHT << SetForeBLK << align_center(target_user)               << RESETTEXT << endl;
+    cout << SetBackWHT << SetForeBBLK<< align_center("Type '<-' to go back")    << RESETTEXT << endl;
+    cout << SetBackWHT << SetForeBLK << white_space                             << RESETTEXT << endl;
+}
+
 void handle_input_border()
 {
     int column = w.ws_col;
-    int t_len = target_user.length();
-
     gotoxy(0, column - 1);
 
-    string input_border;
-    int i = 0;
-    while (i < column)
-    {
-        if (i == (column / 2 - (t_len / 2)))
-        {
-            input_border.append(target_user);
-            i += t_len;
-        }
-        else
-        {
-            input_border.append("=");
-            i++;
-        }
-    }
+    string input_box;
+    for (int i = 0; i < column; i++) input_box.append("–");
 
-    cout << input_border << endl;
+    cout << input_box << endl;
 }
 
 void print_messages(string user)
 {
+    //Erases Display
     cout << "\e[2J";
+
     vector<string> messages = user_msg[user];
     for (int i = 0; i < messages.size(); i++)
     {
@@ -78,53 +140,18 @@ void print_messages(string user)
         string message = messages[i].substr(1);
         int status = atoi(prefix.c_str());
 
-        // TODO: all of those cout codes are duplicate and works for printing,
-        //  even space. Create a function for it
         switch (status)
         {
         case RECEIVED:
-            cout << SetBackBBLK << "   ";
-            for (int j = 0; j < message.length(); j++)
-            {
-                cout << " ";
-            }
-            cout << "   " << RESETTEXT << endl;
-
-            cout << SetBackBBLK << "   " << message << "   " << RESETTEXT << endl;
-
-            cout << SetBackBBLK << "   ";
-            for (int j = 0; j < message.length(); j++)
-            {
-                cout << " ";
-            }
-            cout << "   " << RESETTEXT << endl
-                 << endl;
-
+            print_message_bubble(message, RECEIVED);
             break;
         case SENT:
-            align_right(6 + message.length());
-            cout << SetBackGRN << "   ";
-            for (int j = 0; j < message.length(); j++)
-            {
-                cout << " ";
-            }
-            cout << "   " << RESETTEXT << endl;
-
-            align_right(6 + message.length());
-            cout << SetBackGRN << "   " << message << "   " << RESETTEXT << endl;
-
-            align_right(6 + message.length());
-            cout << SetBackGRN << "   ";
-            for (int j = 0; j < message.length(); j++)
-            {
-                cout << " ";
-            }
-            cout << "   " << RESETTEXT << endl
-                 << endl;
+            print_message_bubble(message, SENT);
         default:
             break;
         }
     }
+    handle_header();
     handle_input_border();
     create_input_gap();
 }
