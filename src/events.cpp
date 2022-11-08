@@ -6,7 +6,8 @@
 
 using namespace std;
 
-void on_winresize(int signum) {
+void on_winresize(int signum)
+{
     handle_resize();
     if (signum != 0)
         print_messages(target_user);
@@ -17,7 +18,7 @@ void on_serverinit()
     snprintf(msg.target_user, sizeof(msg.target_user), "%s", "SERVER-INIT");
     snprintf(msg.content, sizeof(msg.content), "%d", getpid());
     write(publicpipe, (char *)&msg, C_PIPE_BUF);
-    
+
     cout << "Waiting for server to verify your name...\n";
     pause();
 }
@@ -38,7 +39,6 @@ void on_duplicatename()
     cout << "Waiting for server to verify your name...";
     pause();
 }
-
 
 void on_disconnect(int signum)
 {
@@ -80,6 +80,7 @@ void on_newtarget(int signum = 15)
          << ">";
     cin >> target_user;
     snprintf(msg.target_user, sizeof(msg.target_user), "%s", target_user.c_str());
+    print_messages(target_user);
 }
 
 void on_useroffline(int signum)
@@ -87,4 +88,3 @@ void on_useroffline(int signum)
     cout << "User is offline!\n";
     on_newtarget(0);
 }
-

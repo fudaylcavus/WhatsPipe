@@ -4,6 +4,8 @@
 #include "client/client.h"
 #include "client/events.h"
 #include <iostream>
+#include <cstring>
+#include <signal.h>
 
 using namespace std;
 
@@ -59,10 +61,12 @@ void handle_new_content() {
 }
 
 
-int main()
+int main(int argc, char *argv[])
 {
+
     on_winresize(0);
     signal(2, on_disconnect);
+    signal(SIGHUP,on_disconnect);
     signal(4, on_useroffline);
     signal(10, on_message);
     signal(15, on_newtarget);
