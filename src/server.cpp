@@ -1,4 +1,5 @@
-#include "local.h"
+#include "global/local.h"
+#include "global/enums.h"
 #include <iostream>
 #include <string.h>
 #include <signal.h>
@@ -11,14 +12,8 @@ struct message serverMessage;
 map<string, int> user_pid;
 
 char targetpipe_path[C_NAME_SIZ];
-string ERRORS[] = {"SERVER_DUPL_NAME_ERROR", "SERVER_TARGET_NOT_FOUND_ERROR"};
 
-enum Location
-{
-    FROM,
-    CONTENT,
-    TARGET
-};
+
 
 bool is_user_exists(Location location)
 {
@@ -64,8 +59,7 @@ void handle_send_error(int targetPid)
         }
         else
         {
-
-            write(targetPrivatePipe, serverMessage.content, C_PIPE_BUF - 100);
+            write(targetPrivatePipe, serverMessage.content, MSGCONTENT_SIZ);
             close(targetPrivatePipe);
             done = 1;
         }
@@ -105,8 +99,6 @@ void handle_user_disconnect()
     user_pid.erase(msg.from_user);
 }
 
-
-
 int main()
 {
     int n, done, dummypipe, publicpipe, privatepipe;
@@ -132,11 +124,8 @@ int main()
                 cout << "This map has user" << msg.from_user << endl;
                 cout << "This map has user with pid" << msg.content << endl;
             }
-            // shouldnt init if it has in map
             else
                 user_init();
-            // TODO: send error to sender if name is used
-            // client should re-take server_init action
             continue;
         }
         else if (!strcmp(msg.target_user, "USER-DISCONNECT"))
@@ -156,8 +145,6 @@ int main()
             if (!target_pid)
             {
                 kill(user_pid[msg.from_user], 4);
-                // TODO: send to sender:
-                // SERVER: Target user is offline!
                 continue;
             }
 
@@ -175,10 +162,7 @@ int main()
                 }
                 else
                 {
-                    // TODO, su anda client sadece msg.content aliyor
-                    //  tum mesaj objesini gonder.
                     write(privatepipe, (char *)&msg, C_PIPE_BUF);
-
                     close(privatepipe);
                     done = 1;
                 }
