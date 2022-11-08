@@ -9,6 +9,7 @@ using namespace std;
 struct message msg;
 struct message serverMessage;
 map<string, int> user_pid;
+
 char targetpipe_path[C_NAME_SIZ];
 string ERRORS[] = {"SERVER_DUPL_NAME_ERROR", "SERVER_TARGET_NOT_FOUND_ERROR"};
 
@@ -161,6 +162,7 @@ int main()
             }
 
             if (target_pid != 0)
+
                 kill(target_pid, 10);
             snprintf(targetpipe_path, sizeof(targetpipe_path), "/tmp/pipe%d", target_pid);
             cout << "Target pipe path: " << targetpipe_path << endl;
