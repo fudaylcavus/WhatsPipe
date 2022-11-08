@@ -11,12 +11,18 @@
 #include <vector>
 #include <csignal>
 #include <map>
-
+#include <sys/ioctl.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <signal.h>
+#include <termios.h>
+#define gotoxy(x, y) printf("\033[%d;%dH", (y), (x))
 using namespace std;
+void set_cursor(int, int);
 
 const string WHITESPACE = " \n\r\t\f\v";
 
-int TERM_WIDTH = 150;
+int TERM_WIDTH;
 
 void create_input_gap();
 
@@ -27,8 +33,9 @@ int publicpipe;
 string from_user;
 string target_user;
 string ERRORS[] = {"SERVER_DUPL_NAME_ERROR", "SERVER_TARGET_NOT_FOUND_ERROR"};
+struct winsize w;
 
-map<string, vector<string> > user_msg;
+map<string, vector<string>> user_msg;
 
 enum MessageStatus
 {
@@ -36,8 +43,10 @@ enum MessageStatus
     SENT
 };
 
-void align_right(int box_width) {
-    for (int i = 0; i < TERM_WIDTH - box_width; i++) {
+void align_right(int box_width)
+{
+    for (int i = 0; i < TERM_WIDTH - box_width; i++)
+    {
         cout << " ";
     }
 }
@@ -52,6 +61,29 @@ string rtrim(const char charstring[])
 void insert_message(string user, string message)
 {
     user_msg[user].push_back(message);
+}
+void handle_input_border()
+{
+    int row = w.ws_row;
+    int column = w.ws_col;
+    int i = 0;
+    gotoxy(0, column - 1);
+    string inputBorder;
+    while (i < column)
+    {
+        if (i == (column / 2 - 3))
+        {
+            inputBorder.append("INPUT");
+            i += 5;
+        }
+        else
+        {
+            inputBorder.append("=");
+            i++;
+        }
+    }
+
+    cout << inputBorder << endl;
 }
 
 void print_messages(string user)
@@ -110,10 +142,16 @@ void print_messages(string user)
         default:
             break;
         }
-
-        create_input_gap();
-    
     }
+    handle_input_border();
+    create_input_gap();
+}
+
+void terminal_handler(int sig)
+{
+    ioctl(0, TIOCGWINSZ, &w);
+    TERM_WIDTH = w.ws_col;
+    print_messages(target_user);
 }
 
 void server_init()
@@ -168,6 +206,7 @@ void on_messsage(int signum)
         }
         else
         {
+
             insert_message(tempMsg.from_user, "0" + string(tempMsg.content));
             print_messages(tempMsg.from_user);
         }
@@ -188,7 +227,8 @@ void handle_disconnect(int signum)
     exit(0);
 }
 
-void create_input_gap() {
+void create_input_gap()
+{
     switch (fork())
     {
     case 0:
@@ -197,20 +237,30 @@ void create_input_gap() {
     default:
         break;
     }
-    
 }
 
 int main()
 {
+    // Don't put this anywhere below, keep it as far as possible from input, output and prints;
+    // I guess, IOCTL takes some time to process so it is best to be here before signal handlers ;
+    // Maybe we can put sleep here but it is good in here..
+    // Keep it in mind this while re formatting.
+    // If you experience something wrong or weird with chat experience change it's location or put sleep.
+
+    ioctl(0, TIOCGWINSZ, &w);
+    TERM_WIDTH = w.ws_col;
+
     signal(2, handle_disconnect);
     signal(4, handle_offline);
     signal(10, on_messsage);
     signal(15, handle_target);
+    // SIGWINCH, Terminal resize signal
+    // handle it to make it responsive.
+    signal(28, terminal_handler);
 
     cout << "Hi, What's your name?\n"
          << ">";
     cin >> from_user;
-
     snprintf(msg.from_user, sizeof(msg.from_user), "%s", from_user.c_str());
     snprintf(selfpipe_path, sizeof(selfpipe_path), "/tmp/pipe%d", getpid());
 
@@ -232,11 +282,9 @@ int main()
     cout << "Waiting for server to verify your name...\n";
     pause();
 
-
     while (1)
     {
         print_messages(msg.target_user);
-        cout << "----------------Input----------------" << endl;
         memset(msg.content, 0x0, C_PIPE_BUF - 100);
         read(fileno(stdin), msg.content, C_PIPE_BUF - 100);
         snprintf(msg.content, sizeof(msg.content), "%s", rtrim(msg.content).c_str());
