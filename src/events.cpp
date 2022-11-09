@@ -67,8 +67,17 @@ void on_message(int signum)
         }
         else
         {
+            if(temp_msg.from_user==target_user){
             insert_message(temp_msg.from_user, "0" + string(temp_msg.content));
             print_messages(temp_msg.from_user);
+            }
+            else{
+            string system_message=std::string("User ") + temp_msg.from_user+ (" has Just Messaged To You!");
+            insert_message(temp_msg.from_user, "0" + string(temp_msg.content));
+            insert_message(target_user,"2" + string(system_message));
+            print_messages(target_user);
+            remove_last_message(target_user);
+            }
         }
     }
     close(privatepipe);

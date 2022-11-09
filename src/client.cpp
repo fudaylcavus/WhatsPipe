@@ -21,6 +21,9 @@ void insert_message(string user, string message)
 {
     user_msg[user].push_back(message);
 }
+void remove_last_message(string user){
+    user_msg[user].pop_back();
+}
 
 int init_clientside() {
     cout << "Hi, What's your name?\n"
