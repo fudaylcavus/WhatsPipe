@@ -68,6 +68,7 @@ void align_right(int box_width)
 
 void print_bubble_row(string content, string bg_color, BubbleRow row, Aligment align)
 {
+    cout << RESETTEXT;
     string message_white_space;
     for (int j = 0; j < content.length() + 6; j++)
         message_white_space.append(" ");
@@ -117,15 +118,21 @@ void handle_header()
 {
     int column = w.ws_col;
     gotoxy(0, 2);
+    
+    string notificationc = to_string(total_unreadc);
 
     string input_border;
     string white_space;
     for (int i = 0; i < column; i++)
         white_space += " ";
 
+
+
+    string printable_notificationc = total_unreadc != 0 ? " | " + notificationc + " unread" : "";
+
     cout << SetBackWHT << SetForeBLK << white_space << RESETTEXT << endl;
     cout << SetBackWHT << SetForeBLK << align_center(target_user) << RESETTEXT << endl;
-    cout << SetBackWHT << SetForeBBLK << align_center("Type '<-' to go back") << RESETTEXT << endl;
+    cout << SetBackWHT << SetForeBBLK << align_center("Type '<-' to go back" + printable_notificationc) << RESETTEXT << endl;
     cout << SetBackWHT << SetForeBLK << white_space << RESETTEXT << endl;
 }
 
