@@ -3,8 +3,11 @@
 #include "client/events.h"
 #include <stdio.h>
 #include <iostream>
+#include <thread>
+#include <signal.h>
 
 using namespace std;
+int reader_pid;
 
 void on_winresize(int signum)
 {
@@ -49,42 +52,60 @@ void on_disconnect(int signum)
     exit(0);
 }
 
-void on_message(int signum)
-{
-    if ((privatepipe = open(selfpipe_path, O_RDONLY)) == -1)
-    {
-        perror(selfpipe_path);
-        return;
-    }
+void handle_message()
 
-    message temp_msg;
-    int n;
-    while ((n = read(privatepipe, (char *)&temp_msg, C_PIPE_BUF)) > 0)
+{
+
+    while (1)
     {
-        if (temp_msg.content == ERRORS[0])
+
+        if ((privatepipe = open(selfpipe_path, O_RDONLY)) == -1)
         {
-            on_duplicatename();
+            perror(selfpipe_path);
+            return;
         }
-        else
+
+        message temp_msg;
+        int n;
+        while ((n = read(privatepipe, (char *)&temp_msg, C_PIPE_BUF)) > 0)
         {
-            if (temp_msg.from_user==target_user) {
-                insert_message(temp_msg.from_user, "0" + string(temp_msg.content));
-                print_messages(temp_msg.from_user);
+            if (temp_msg.content == ERRORS[0])
+            {
+                on_duplicatename();
             }
-            else {
-                user_unreadc[temp_msg.from_user]++;
-                total_unreadc++;
-                string system_message= string("New Message: ") + temp_msg.from_user + " (" + to_string(user_unreadc[temp_msg.from_user]) + ")";
-                insert_message(temp_msg.from_user, "0" + string(temp_msg.content));
-                insert_message(target_user,"2" + string(system_message));
-                print_messages(target_user);
-                remove_last_message(target_user);
+            else
+            {
+                if (temp_msg.from_user == target_user)
+                {
+                    insert_message(temp_msg.from_user, "0" + string(temp_msg.content));
+                    print_messages(temp_msg.from_user);
+                }
+                else
+                {
+                    user_unreadc[temp_msg.from_user]++;
+                    total_unreadc++;
+                    string system_message = string("New Message: ") + temp_msg.from_user + " (" + to_string(user_unreadc[temp_msg.from_user]) + ")";
+                    insert_message(temp_msg.from_user, "0" + string(temp_msg.content));
+                    insert_message(target_user, "2" + string(system_message));
+                    print_messages(target_user);
+                    remove_last_message(target_user);
+                }
             }
         }
+        reader_pid = getpid();
+        pause();
+        close(privatepipe);
     }
-    close(privatepipe);
 }
 
+void start_thread()
+{
+    thread(handle_message).detach();
+}
+void wake_up_process(int signum)
+{
+    kill(reader_pid, 14);
+}
 void on_newtarget(int signum = 15)
 {
     cout << "\nWho do you want to send message?\n"
@@ -103,3 +124,4 @@ void on_useroffline(int signum)
     cout << "User is offline!\n";
     on_newtarget(0);
 }
+void ignore_signal(int signum) {}
