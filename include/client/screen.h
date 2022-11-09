@@ -8,5 +8,4 @@ void create_input_gap();
 void align_right(int);
 void handle_input_border();
 void print_messages(string);
-void print_system_message(string);
 void handle_resize();
