@@ -6,6 +6,8 @@
 extern int publicpipe;
 extern message msg;
 extern map<string, vector<string> > user_msg;
+extern map<string, int> user_unreadc;
+extern int total_unreadc;
 
 extern string from_user;
 extern string target_user;

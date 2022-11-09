@@ -67,16 +67,18 @@ void on_message(int signum)
         }
         else
         {
-            if(temp_msg.from_user==target_user){
-            insert_message(temp_msg.from_user, "0" + string(temp_msg.content));
-            print_messages(temp_msg.from_user);
+            if (temp_msg.from_user==target_user) {
+                insert_message(temp_msg.from_user, "0" + string(temp_msg.content));
+                print_messages(temp_msg.from_user);
             }
-            else{
-            string system_message=std::string("User ") + temp_msg.from_user+ (" has Just Messaged To You!");
-            insert_message(temp_msg.from_user, "0" + string(temp_msg.content));
-            insert_message(target_user,"2" + string(system_message));
-            print_messages(target_user);
-            remove_last_message(target_user);
+            else {
+                user_unreadc[temp_msg.from_user]++;
+                total_unreadc++;
+                string system_message= string("New Message: ") + temp_msg.from_user + " (" + to_string(user_unreadc[temp_msg.from_user]) + ")";
+                insert_message(temp_msg.from_user, "0" + string(temp_msg.content));
+                insert_message(target_user,"2" + string(system_message));
+                print_messages(target_user);
+                remove_last_message(target_user);
             }
         }
     }
@@ -89,6 +91,10 @@ void on_newtarget(int signum = 15)
          << ">";
     cin >> target_user;
     snprintf(msg.target_user, sizeof(msg.target_user), "%s", target_user.c_str());
+
+    total_unreadc -= user_unreadc[msg.target_user];
+    user_unreadc[msg.target_user] = 0;
+
     print_messages(target_user);
 }
 
