@@ -1,7 +1,8 @@
 enum MessageStatus
 {
     RECEIVED,
-    SENT
+    SENT,
+    SYSTEM
 };
 
 
