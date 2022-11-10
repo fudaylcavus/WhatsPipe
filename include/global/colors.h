@@ -22,6 +22,7 @@
 #define FOREMAG  "\x1B[35m" // Magenta
 #define FORECYN  "\x1B[36m" // Cyan
 #define FOREWHT  "\x1B[37m" // White
+#define FOREBBLK  "\x1B[90m" // Bright Black (Gray)
 
 /* BACKGROUND */
 // These codes set the background color behind the text.
@@ -33,7 +34,7 @@
 #define BACKMAG "\x1B[45m"
 #define BACKCYN "\x1B[46m"
 #define BACKWHT "\x1B[47m"
-#define BACKBBLACK "\x1B[100m"
+#define BACKBBLK "\x1B[100m"
 
 // These will set the text color and then set it back to normal afterwards.
 #define BLK(x) FOREBLK x RESETTEXT
@@ -71,7 +72,7 @@
 #define SetBackMAG BACKMAG
 #define SetBackCYN BACKCYN
 #define SetBackWHT BACKWHT
-#define SetBackBBLK BACKBBLACK
+#define SetBackBBLK BACKBBLK
 
 // Example usage: cout << SetBackRED << "This text's background and all text after it will be red until RESETTEXT is called in some way" << endl;
 
@@ -84,6 +85,7 @@
 #define SetForeMAG FOREMAG
 #define SetForeCYN FORECYN
 #define SetForeWHT FOREWHT
+#define SetForeBBLK FOREBBLK
 
 // Example usage: cout << SetForeRED << "This text and all text after it will be red until RESETTEXT is called in some way" << endl;
 
