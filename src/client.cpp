@@ -32,7 +32,7 @@ int init_clientside()
     cin >> from_user;
 
     // Generate Relative Pipe Path
-    cout << "Welcome, " << from_user;
+    cout << "Welcome, " << from_user <<endl;
     snprintf(selfpipe_path, sizeof(selfpipe_path), "/tmp/pipe%d", getpid());
 
     // Generate Pipe
