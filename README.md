@@ -42,7 +42,7 @@ _No external libraries are used_
 ### How to run on your machine
  **UNIX BASED OS REQUIRED** 
 
-Open terminal on cloned file then do the following steps;
+Open terminal on cloned folder then do the following steps;
 #### Client-Side Compilation
 `g++ -I./include -o client src/client.cpp src/screen.cpp src/events.cpp`
 #### Server-Side Compilation
